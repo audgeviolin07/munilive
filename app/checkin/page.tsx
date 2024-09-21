@@ -5,6 +5,11 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Send } from "lucide-react"
 import Webcam from "react-webcam"
+import Cerebras from '@cerebras/cerebras_cloud_sdk';
+
+const cerebras = new Cerebras({
+  apiKey: process.env.NEXT_PUBLIC_CEREBRAS_API_KEY
+});
 
 export default function Dashboard() {
   const [messages, setMessages] = useState<{ text: string; sender: "user" | "bot" }[]>([
@@ -13,34 +18,66 @@ export default function Dashboard() {
   const [input, setInput] = useState("")
   const [chartUrl, setChartUrl] = useState<string | null>(null)
 
-  const apiKey = '6QAGPX-WGV2L9HTGG'
-
   const fetchWolframChart = async () => {
     try {
-      // Use the CORS proxy
-      const response = await fetch(
-        `https://cors-anywhere.herokuapp.com/https://api.wolframalpha.com/v2/query?input=3D%20blood%20pressure%20vs%20pain%20level&format=image&output=JSON&appid=${apiKey}`
-      )
-      const data = await response.json()
-      const imageUrl = data.queryresult.pods[0].subpods[0].img.src
-      setChartUrl(imageUrl)
+      const response = await fetch('http://localhost:4000/wolfram');
+      const data = await response.json();
+      const imageUrl = data.queryresult.pods[0].subpods[0].img.src;
+      setChartUrl(imageUrl);
     } catch (error) {
-      console.error("Error fetching Wolfram chart:", error)
+      console.error("Error fetching Wolfram chart:", error);
     }
-  }
+  };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (input.trim()) {
-      setMessages([...messages, { text: input, sender: "user" }])
-      setInput("")
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          { text: "Thank you for sharing. Is there anything specific you'd like to discuss about your medication?", sender: "bot" },
-        ])
-      }, 1000)
+      setMessages([...messages, { text: input, sender: "user" }]);
+      setInput("");
+  
+      let botMessage = "";
+  
+      // Call Cerebras API to get bot response
+      try {
+        const stream = await cerebras.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content:
+                'you are a doctor\'s assistant - your name is "health assistant". don\'t introduce yourself. isn\'t an appointment. this is just an AI assistant gaining metrics. Ask about their disease and gain metrics (ex. blood pressure) to see if they are making progress. Ensure the patient is adhering to treatment regimes.'
+            },
+            {
+              role: "user",
+              content: input,
+            },
+          ],
+          model: "llama3.1-8b",
+          stream: true,
+          max_tokens: 1024,
+          temperature: 1,
+          top_p: 1,
+        });
+  
+        // Buffer for accumulating the bot response
+        let accumulatedMessage = "";
+  
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content || '';
+          accumulatedMessage += content;
+  
+          // Optionally, update the UI with partial responses if needed
+          // setMessages((prev) => [...prev, { text: accumulatedMessage, sender: "bot" }]);
+        }
+  
+        // Once the message stream is complete, update the final message
+        setMessages((prev) => [...prev, { text: accumulatedMessage, sender: "bot" }]);
+  
+      } catch (error) {
+        console.error("Error with Cerebras chat:", error);
+        setMessages((prev) => [...prev, { text: "Sorry, there was an error with the assistant.", sender: "bot" }]);
+      }
     }
-  }
+  };
+  
 
   return (
     <div className="flex justify-center items-start space-x-8 p-8">
@@ -122,5 +159,5 @@ export default function Dashboard() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

@@ -1,5 +1,10 @@
-const express = require('express');
-const fetch = require('node-fetch');
+import express from 'express';
+import fetch from 'node-fetch';
+import dotenv from 'dotenv';
+
+// Load environment variables from the .env file
+dotenv.config();
+
 const app = express();
 const PORT = 4000;
 
@@ -11,9 +16,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Root route ("/")
+app.get('/', (req, res) => {
+  res.send('Welcome to the Wolfram Proxy Server');
+});
+
 // Endpoint to proxy requests to Wolfram API
 app.get('/wolfram', async (req, res) => {
-  const apiKey = 'YOUR_WOLFRAM_API_KEY';  // Replace with your Wolfram Alpha API key
+  const apiKey = process.env.WOLFRAM_API_KEY;  // Get the API key from .env
   const query = '3D blood pressure vs pain level';
   const wolframUrl = `https://api.wolframalpha.com/v2/query?input=${encodeURIComponent(query)}&format=image,plaintext&output=JSON&appid=${apiKey}`;
 
