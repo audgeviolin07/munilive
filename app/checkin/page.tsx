@@ -34,8 +34,7 @@ export default function Dashboard() {
       setMessages([...messages, { text: input, sender: "user" }]);
       setInput("");
   
-      let botMessage = "";
-  
+      
       // Call Cerebras API to get bot response
       try {
         const stream = await cerebras.chat.completions.create({
