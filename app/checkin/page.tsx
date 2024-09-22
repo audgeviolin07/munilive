@@ -29,7 +29,7 @@ export default function Dashboard() {
     const startWebcam = () => {
       navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { width: 320, height: 200, facingMode: "environment" } // Smaller video size
+        video: { width: 320, height: 150, facingMode: "environment" } // Smaller video size
       }).then((stream) => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
