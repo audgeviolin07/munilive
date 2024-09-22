@@ -230,7 +230,7 @@ export default function Dashboard() {
       {/* First Card - Daily Check-in */}
       <Card className="w-full max-w-2xl h-[80vh] bg-white bg-opacity-20 backdrop-blur-lg">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-white text-center">Daily Check-in</CardTitle>
+          <CardTitle className="text-2xl font-bold text-white text-center">On Demand Check-in </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -277,7 +277,7 @@ export default function Dashboard() {
         {/* Second Card - Roboflow Webcam */}
         <Card className="w-full max-w-2xl h-[50vh] bg-white bg-opacity-20 backdrop-blur-lg">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-white text-center">Pain Analysis</CardTitle>
+            <CardTitle className="text-2xl font-bold text-white text-center">Patient Webcam Analysis</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="relative">
