@@ -203,7 +203,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="relative">
-            <video ref={videoRef} width="475" height="300" className="rounded-lg" style={{ position: "relative" }} />
+            <video ref={videoRef} width="475" height="475" className="rounded-lg" style={{ position: "relative" }} />
               <canvas ref={canvasRef} width="400" height="240" style={{ position: "absolute", top: 50, left: 50 }} />
             </div>
           </CardContent>
