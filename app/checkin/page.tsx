@@ -197,7 +197,7 @@ export default function Dashboard() {
       {/* Second Column with Webcam and Wolfram Cards */}
       <div className="flex flex-col space-y-8">
         {/* Second Card - Roboflow Webcam */}
-        <Card className="w-full max-w-2xl h-[40vh] bg-white bg-opacity-20 backdrop-blur-lg">
+        <Card className="w-full max-w-2xl h-[50vh] bg-white bg-opacity-20 backdrop-blur-lg">
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-white text-center">Roboflow Pain Analysis</CardTitle>
           </CardHeader>
@@ -210,7 +210,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Third Card - Wolfram Blood Pressure Plot and Pain Level */}
-        <Card className="w-full max-w-2xl h-[40vh] bg-white bg-opacity-20 backdrop-blur-lg">
+        <Card className="w-full max-w-2xl h-[30vh] bg-white bg-opacity-20 backdrop-blur-lg">
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-white text-center">Wolfram Blood Pressure Plot and Pain Level</CardTitle>
           </CardHeader>
