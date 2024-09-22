@@ -5,7 +5,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'muni - Your Health Companion',
+  title: 'muni - your health, connected',
   description: 'Manage your health conditions and medications with ease',
 }
 
@@ -16,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen bg-gradient-to-br from-sky-400 via-sky-600 to-sky-700`}>
+      <body className={`${inter.className} min-h-screen bg-gradient-to-br from-sky-400 via-sky-700 to-sky-900`}>
         <nav className="bg-white/10 backdrop-blur-lg">
           <div className="container mx-auto px-6 py-3">
             <div className="flex items-center justify-between">
