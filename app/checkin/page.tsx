@@ -273,7 +273,8 @@ export default function Dashboard() {
       </Card>
 
       {/* Second Column with Webcam and Wolfram Cards */}
-      <div className="flex flex-col space-y-8">
+      <div className="flex flex-col space-y-8 items-center">
+      <Image src="/munilogo.png" alt="Muni Logo" width={300} height={300} />
         {/* Second Card - Roboflow Webcam */}
         <Card className="w-full max-w-2xl h-[50vh] bg-white bg-opacity-20 backdrop-blur-lg">
           <CardHeader>
