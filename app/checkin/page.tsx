@@ -13,8 +13,8 @@ const cerebras = new Cerebras({
 });
 
 export default function Dashboard() {
-  const [messages, setMessages] = useState<{ text: string; sender: "user" | "bot" }[]>([
-    { text: "Hello! How are you feeling today?", sender: "bot" },
+  const [messages, setMessages] = useState<{ text: string; sender: "user" | "bot"; type?: "action" | "info" | "alert" }[]>([
+    { text: "Hello! How are you feeling today?", sender: "bot", type: "info" },
   ]);
   const [input, setInput] = useState("");
   const [chartUrl, setChartUrl] = useState<string | null>(null);
@@ -94,9 +94,41 @@ export default function Dashboard() {
       console.error("ModelWorkerId is null");
     }
   };
-  
 
-  // Cerebras chatbot integration
+  // Helper function to classify message as "action", "info", or "alert"
+  const classifyMessage = (message: string) => {
+    const actionKeywords = ["drink", "eat", "take", "exercise", "move", "rest", "meditate"];
+    const alertKeywords = ["dangerously low", "dangerous", "alert", "emergency", "critical"];
+    const lowerCaseMessage = message.toLowerCase();
+    
+    // Check for medical alert keywords
+    if (alertKeywords.some((keyword) => lowerCaseMessage.includes(keyword))) {
+      return "alert";
+    }
+
+    // Check if the message contains an action keyword
+    if (actionKeywords.some((keyword) => lowerCaseMessage.includes(keyword))) {
+      return "action";
+    }
+    
+    // Otherwise, treat it as informational content
+    return "info";
+  };
+
+  // Helper function to check for dangerously low metrics
+  const checkForAlert = (message: string) => {
+    const alertKeywords = ["blood sugar", "pressure", "heart rate"];
+    const dangerLevels = ["dangerously low", "dangerous", "critical"];
+    const lowerCaseMessage = message.toLowerCase();
+
+    // Check if message mentions dangerous metrics
+    if (dangerLevels.some((level) => lowerCaseMessage.includes(level)) && alertKeywords.some((keyword) => lowerCaseMessage.includes(keyword))) {
+      return true;
+    }
+    return false;
+  };
+
+  // Cerebras chatbot integration with better message handling and alerts
   const handleSend = async () => {
     if (input.trim()) {
       setMessages([...messages, { text: input, sender: "user" }]);
@@ -107,7 +139,9 @@ export default function Dashboard() {
           messages: [
             {
               role: "system",
-              content: 'You are a doctor\'s assistant named "health assistant". Ask about their condition and track health metrics like blood pressure. Ensure they are adhering to treatment plans.',
+              content: `You are a doctor's assistant named "health assistant". 
+                        For each user input, respond with coherent chain-of-thought reasoning, breaking the response into meaningful steps or sentences.
+                        Classify each step as either "action", "info", or "alert" based on whether it's actionable advice, informational content, or a medical alert.Outcomes assessment with EHR electronic health record. emphasize asking questions to gain info on the patient and metrics. you dont have a name. make sure the patient is taking care of themselves ie drinking water. ask them if any of their levels are low. i don't speak in long paragraphs and I only say the most important and necessary info`,
             },
             {
               role: "user",
@@ -122,15 +156,55 @@ export default function Dashboard() {
         });
 
         let accumulatedMessage = "";
+        let sentenceBuffer = "";
+        const addedMessages = new Set();
+        let alertTriggered = false;
 
         for await (const chunk of stream) {
           if (chunk?.choices && chunk.choices.length > 0) {
             const content = chunk.choices[0]?.delta?.content || '';
-            accumulatedMessage += content;
+            sentenceBuffer += content;
+
+            // Check if we have a complete sentence (end with a period, question mark, or exclamation mark)
+            if (/[.!?]$/.test(sentenceBuffer)) {
+              accumulatedMessage += sentenceBuffer;
+
+              // Check for alert condition
+              if (checkForAlert(sentenceBuffer)) {
+                if (!alertTriggered) { // Ensure alert is triggered only once
+                  alertTriggered = true;
+                  setMessages((prev) => [
+                    ...prev,
+                    { text: "Your metrics have been flagged for your safety.", sender: "bot", type: "alert" },
+                    { text: "Your blood sugar is dangerously low. Your doctor will be contacted immediately.", sender: "bot", type: "alert" }
+                  ]);
+                }
+                break; // Stop processing further messages after an alert
+              }
+
+              // Avoid message repetition by using a Set
+              if (!addedMessages.has(sentenceBuffer)) {
+                addedMessages.add(sentenceBuffer);
+
+                // Classify the message as either action, info, or alert
+                const messageType = classifyMessage(sentenceBuffer);
+
+                // Add each complete sentence as a step in the reasoning process with its type
+                setMessages((prev) => [
+                  ...prev,
+                  { text: sentenceBuffer, sender: "bot", type: messageType },
+                ]);
+
+                sentenceBuffer = ""; // Reset buffer for next sentence
+              }
+            }
           }
         }
 
-        setMessages((prev) => [...prev, { text: accumulatedMessage, sender: "bot" }]);
+        // After streaming the steps, finalize with the complete message only if no alert was triggered
+        if (accumulatedMessage && !alertTriggered) {
+          setMessages((prev) => [...prev, { text: accumulatedMessage, sender: "bot" }]);
+        }
 
       } catch (error) {
         console.error("Error with Cerebras chat:", error);
@@ -170,7 +244,11 @@ export default function Dashboard() {
                     className={`rounded-lg px-4 py-2 max-w-[80%] ${
                       message.sender === "user"
                         ? "bg-purple-600 text-white"
-                        : "bg-white bg-opacity-20 text-white"
+                        : message.type === "action"
+                          ? "bg-green-600 text-white"
+                          : message.type === "alert"
+                          ? "bg-red-600 text-white"
+                          : "bg-blue-600 text-white"
                     }`}
                   >
                     {message.text}
@@ -199,20 +277,20 @@ export default function Dashboard() {
         {/* Second Card - Roboflow Webcam */}
         <Card className="w-full max-w-2xl h-[50vh] bg-white bg-opacity-20 backdrop-blur-lg">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-white text-center">Roboflow Pain Analysis</CardTitle>
+            <CardTitle className="text-2xl font-bold text-white text-center">Pain Analysis</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="relative">
-            <video ref={videoRef} width="475" height="475" className="rounded-lg" style={{ position: "relative" }} />
+              <video ref={videoRef} width="475" height="475" className="rounded-lg" style={{ position: "relative" }} />
               <canvas ref={canvasRef} width="400" height="240" style={{ position: "absolute", top: 50, left: 50 }} />
             </div>
           </CardContent>
         </Card>
 
         {/* Third Card - Wolfram Blood Pressure Plot and Pain Level */}
-        <Card className="w-full max-w-2xl h-[30vh] bg-white bg-opacity-20 backdrop-blur-lg">
+        {/* <Card className="w-full max-w-2xl h-[30vh] bg-white bg-opacity-20 backdrop-blur-lg">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-white text-center">Wolfram Blood Pressure Plot and Pain Level</CardTitle>
+            <CardTitle className="text-2xl font-bold text-white text-center">Blood Pressure Plot and Pain Level</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[30vh] flex justify-center items-center">
@@ -231,7 +309,7 @@ export default function Dashboard() {
               )}
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   );
