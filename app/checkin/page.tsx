@@ -1,4 +1,3 @@
-
 "use client";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,9 @@ export default function Dashboard() {
 
           // Ensure that video dimensions are set after the metadata is loaded
           videoRef.current.onloadedmetadata = () => {
-            videoRef.current.play();
+            if (videoRef.current) {
+              videoRef.current.play();
+            }
             detectFrame();
           };
         }
@@ -229,7 +230,6 @@ export default function Dashboard() {
     </div>
   );
 }
-
 
 // "use client"
 // import { useState } from "react"
