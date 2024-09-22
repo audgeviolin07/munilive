@@ -16,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen bg-gradient-to-br from-sky-700 via-sky-600 to-sky-500`}>
+      <body className={`${inter.className} min-h-screen bg-gradient-to-br from-sky-400 via-sky-600 to-sky-700`}>
         <nav className="bg-white/10 backdrop-blur-lg">
           <div className="container mx-auto px-6 py-3">
             <div className="flex items-center justify-between">

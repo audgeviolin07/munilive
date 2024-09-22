@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Send } from "lucide-react"
 import Webcam from "react-webcam"
 import Cerebras from '@cerebras/cerebras_cloud_sdk';
+import Image from 'next/image';  // Importing Image from next/image
 
 const cerebras = new Cerebras({
   apiKey: process.env.NEXT_PUBLIC_CEREBRAS_API_KEY
@@ -34,7 +35,6 @@ export default function Dashboard() {
       setMessages([...messages, { text: input, sender: "user" }]);
       setInput("");
   
-      
       // Call Cerebras API to get bot response
       try {
         const stream = await cerebras.chat.completions.create({
@@ -76,7 +76,6 @@ export default function Dashboard() {
       }
     }
   };
-  
 
   return (
     <div className="flex justify-center items-start space-x-8 p-8">
@@ -147,7 +146,13 @@ export default function Dashboard() {
           <CardContent>
             <div className="h-[30vh] flex justify-center items-center">
               {chartUrl ? (
-                <img src={chartUrl} alt="Wolfram Blood Pressure Plot" className="w-full h-full object-contain" />
+                <Image
+                  src={chartUrl}
+                  alt="Wolfram Blood Pressure Plot"
+                  width={500}  // Set an appropriate width
+                  height={500} // Set an appropriate height
+                  className="object-contain"
+                />
               ) : (
                 <Button onClick={fetchWolframChart} className="bg-white text-purple-600 hover:bg-gray-100">
                   Fetch Wolfram Chart
