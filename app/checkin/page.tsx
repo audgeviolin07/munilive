@@ -63,32 +63,38 @@ export default function Dashboard() {
       setTimeout(detectFrame, 100); // Retry until video is ready
       return;
     }
-
+  
     const img = new CVImage(videoRef.current);
-    inferEngine.infer(modelWorkerId, img).then((predictions) => {
-      const ctx = canvasRef.current?.getContext("2d");
-      if (!ctx || !canvasRef.current) return;
-
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-
-      predictions.forEach((prediction) => {
-        const { x, y, width, height } = prediction.bbox;
-
-        // Draw bounding box
-        ctx.strokeStyle = prediction.color;
-        ctx.strokeRect(x - width / 2, y - height / 2, width, height);
-
-        // Set font size larger for the labels
-        ctx.font = "20px monospace"; // Increase font size for label text
-        ctx.fillStyle = ctx.strokeStyle;
-        ctx.fillText(`${prediction.class} ${Math.round(prediction.confidence * 100)}%`, x - width / 2, y - height / 2 - 10);
+  
+    if (modelWorkerId) { // Ensure modelWorkerId is not null
+      inferEngine.infer(modelWorkerId, img).then((predictions) => {
+        const ctx = canvasRef.current?.getContext("2d");
+        if (!ctx || !canvasRef.current) return;
+  
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+  
+        predictions.forEach((prediction) => {
+          const { x, y, width, height } = prediction.bbox;
+  
+          // Draw bounding box
+          ctx.strokeStyle = prediction.color;
+          ctx.strokeRect(x - width / 2, y - height / 2, width, height);
+  
+          // Set font size larger for the labels
+          ctx.font = "20px monospace"; // Increase font size for label text
+          ctx.fillStyle = ctx.strokeStyle;
+          ctx.fillText(`${prediction.class} ${Math.round(prediction.confidence * 100)}%`, x - width / 2, y - height / 2 - 10);
+        });
+  
+        setTimeout(detectFrame, 100 / 3);
+      }).catch((error) => {
+        console.error("Error during inference: ", error);
       });
-
-      setTimeout(detectFrame, 100 / 3);
-    }).catch((error) => {
-      console.error("Error during inference: ", error);
-    });
+    } else {
+      console.error("ModelWorkerId is null");
+    }
   };
+  
 
   // Cerebras chatbot integration
   const handleSend = async () => {
