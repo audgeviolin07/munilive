@@ -60,11 +60,10 @@ export default function Dashboard() {
         let accumulatedMessage = "";
   
         for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content || '';
-          accumulatedMessage += content;
-  
-          // Optionally, update the UI with partial responses if needed
-          // setMessages((prev) => [...prev, { text: accumulatedMessage, sender: "bot" }]);
+          if (chunk?.choices && chunk.choices.length > 0) {
+            const content = chunk.choices[0]?.delta?.content || '';
+            accumulatedMessage += content;
+          }
         }
   
         // Once the message stream is complete, update the final message
