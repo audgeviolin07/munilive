@@ -1,10 +1,10 @@
+
 "use client";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Send } from "lucide-react";
-import Webcam from "react-webcam";
 import Cerebras from '@cerebras/cerebras_cloud_sdk';
 import Image from 'next/image';
 import { InferenceEngine, CVImage } from "inferencejs"; // Roboflow imports
@@ -27,40 +27,37 @@ export default function Dashboard() {
 
   // Roboflow initialization and webcam handling
   useEffect(() => {
+    const startWebcam = () => {
+      navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { width: 320, height: 240, facingMode: "environment" } // Smaller video size
+      }).then((stream) => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+
+          // Ensure that video dimensions are set after the metadata is loaded
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play();
+            detectFrame();
+          };
+        }
+      }).catch((error) => {
+        console.error("Error accessing webcam: ", error);
+      });
+    };
+
     if (!modelLoading) {
       setModelLoading(true);
       inferEngine.startWorker("coco", 3, "rf_EsVTlbAbaZPLmAFuQwWoJgFpMU82")
         .then((id) => setModelWorkerId(id));
     }
-  }, [inferEngine, modelLoading]);
-
-  useEffect(() => {
+    
     if (modelWorkerId) {
       startWebcam();
     }
-  }, [modelWorkerId]);
-
-  const startWebcam = () => {
-    navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: { width: 640, height: 480, facingMode: "environment" }
-    }).then((stream) => {
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-
-        // Ensure that video dimensions are set after the metadata is loaded
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current.play();
-          detectFrame();
-        };
-      }
-    }).catch((error) => {
-      console.error("Error accessing webcam: ", error);
-    });
-  };
+  }, [inferEngine, modelWorkerId, modelLoading]);
 
   const detectFrame = () => {
-    // Ensure the video element has valid width and height
     if (!videoRef.current || videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) {
       setTimeout(detectFrame, 100); // Retry until video is ready
       return;
@@ -72,12 +69,18 @@ export default function Dashboard() {
       if (!ctx || !canvasRef.current) return;
 
       ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
       predictions.forEach((prediction) => {
         const { x, y, width, height } = prediction.bbox;
+
+        // Draw bounding box
         ctx.strokeStyle = prediction.color;
         ctx.strokeRect(x - width / 2, y - height / 2, width, height);
+
+        // Set font size larger for the labels
+        ctx.font = "20px monospace"; // Increase font size for label text
         ctx.fillStyle = ctx.strokeStyle;
-        ctx.fillText(`${prediction.class} ${Math.round(prediction.confidence * 100)}%`, x, y - 10);
+        ctx.fillText(`${prediction.class} ${Math.round(prediction.confidence * 100)}%`, x - width / 2, y - height / 2 - 10);
       });
 
       setTimeout(detectFrame, 100 / 3);
@@ -189,12 +192,12 @@ export default function Dashboard() {
         {/* Second Card - Roboflow Webcam */}
         <Card className="w-full max-w-2xl h-[40vh] bg-white bg-opacity-20 backdrop-blur-lg">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-white text-center">Pain Analysis</CardTitle>
+            <CardTitle className="text-2xl font-bold text-white text-center">Roboflow Pain Analysis</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="relative">
-              <video ref={videoRef} width="640" height="480" className="rounded-lg" style={{ position: "relative" }} />
-              <canvas ref={canvasRef} width="640" height="480" style={{ position: "absolute", top: 0, left: 0 }} />
+            <video ref={videoRef} width="475" height="475" className="rounded-lg" style={{ position: "relative" }} />
+              <canvas ref={canvasRef} width="400" height="240" style={{ position: "absolute", top: 50, left: 50 }} />
             </div>
           </CardContent>
         </Card>
