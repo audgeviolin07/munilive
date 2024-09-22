@@ -29,7 +29,7 @@ export default function Dashboard() {
     const startWebcam = () => {
       navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { width: 320, height: 180, facingMode: "environment" } // Smaller video size
+        video: { width: 320, height: 240, facingMode: "environment" } // Smaller video size
       }).then((stream) => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -236,6 +236,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 // "use client"
 // import { useState } from "react"
