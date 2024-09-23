@@ -173,29 +173,31 @@ export default function Dashboard() {
         let alertTriggered = false;
 
         for await (const chunk of stream) {
-          const content = chunk?.choices[0]?.delta?.content || "";
-          sentenceBuffer += content;
+          if (chunk?.choices && chunk.choices.length > 0) {  // Ensure chunk and choices are not null or undefined
+            const content = chunk.choices[0]?.delta?.content || "";
+            sentenceBuffer += content;
 
-          if (/[.!?]$/.test(sentenceBuffer)) {
-            accumulatedMessage += sentenceBuffer;
+            if (/[.!?]$/.test(sentenceBuffer)) {
+              accumulatedMessage += sentenceBuffer;
 
-            if (checkForAlert(sentenceBuffer)) {
-              if (!alertTriggered) {
-                alertTriggered = true;
-                setMessages((prev) => [
-                  ...prev,
-                  { text: "Your metrics have been flagged for your safety.", sender: "bot", type: "alert" },
-                  { text: "Your blood sugar is dangerously low. Your doctor will be contacted immediately.", sender: "bot", type: "alert" },
-                ]);
+              if (checkForAlert(sentenceBuffer)) {
+                if (!alertTriggered) {
+                  alertTriggered = true;
+                  setMessages((prev) => [
+                    ...prev,
+                    { text: "Your metrics have been flagged for your safety.", sender: "bot", type: "alert" },
+                    { text: "Your blood sugar is dangerously low. Your doctor will be contacted immediately.", sender: "bot", type: "alert" },
+                  ]);
+                }
+                break;
               }
-              break;
-            }
 
-            if (!addedMessages.has(sentenceBuffer)) {
-              addedMessages.add(sentenceBuffer);
-              const messageType = classifyMessage(sentenceBuffer);
-              setMessages((prev) => [...prev, { text: sentenceBuffer, sender: "bot", type: messageType }]);
-              sentenceBuffer = "";
+              if (!addedMessages.has(sentenceBuffer)) {
+                addedMessages.add(sentenceBuffer);
+                const messageType = classifyMessage(sentenceBuffer);
+                setMessages((prev) => [...prev, { text: sentenceBuffer, sender: "bot", type: messageType }]);
+                sentenceBuffer = "";
+              }
             }
           }
         }
