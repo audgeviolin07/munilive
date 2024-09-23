@@ -23,7 +23,43 @@ export default function Dashboard() {
   const [modelWorkerId, setModelWorkerId] = useState<string | null>(null);
   const [modelLoading, setModelLoading] = useState(false);
 
-  // Move detectFrame declaration above useEffect to prevent it from being used before it is defined
+  // Roboflow initialization and webcam handling
+  useEffect(() => {
+    const startWebcam = () => {
+      navigator.mediaDevices
+        .getUserMedia({
+          audio: false,
+          video: { width: 320, height: 240, facingMode: "environment" },
+        })
+        .then((stream) => {
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+
+            videoRef.current.onloadedmetadata = () => {
+              if (videoRef.current) {
+                videoRef.current.play();
+              }
+              detectFrame();
+            };
+          }
+        })
+        .catch((error) => {
+          console.error("Error accessing webcam: ", error);
+        });
+    };
+
+    if (!modelLoading) {
+      setModelLoading(true);
+      inferEngine
+        .startWorker("coco", 3, "rf_EsVTlbAbaZPLmAFuQwWoJgFpMU82")
+        .then((id) => setModelWorkerId(id));
+    }
+
+    if (modelWorkerId) {
+      startWebcam();
+    }
+  }, [inferEngine, modelWorkerId, modelLoading]);
+
   const detectFrame = () => {
     if (
       !videoRef.current ||
@@ -72,44 +108,6 @@ export default function Dashboard() {
     }
   };
 
-  // Roboflow initialization and webcam handling
-  useEffect(() => {
-    const startWebcam = () => {
-      navigator.mediaDevices
-        .getUserMedia({
-          audio: false,
-          video: { width: 320, height: 240, facingMode: "environment" },
-        })
-        .then((stream) => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-
-            videoRef.current.onloadedmetadata = () => {
-              if (videoRef.current) {
-                videoRef.current.play();
-              }
-              detectFrame();
-            };
-          }
-        })
-        .catch((error) => {
-          console.error("Error accessing webcam: ", error);
-        });
-    };
-
-    if (!modelLoading) {
-      setModelLoading(true);
-      inferEngine
-        .startWorker("coco", 3, "rf_EsVTlbAbaZPLmAFuQwWoJgFpMU82")
-        .then((id) => setModelWorkerId(id));
-    }
-
-    if (modelWorkerId) {
-      startWebcam();
-    }
-  }, [inferEngine, modelWorkerId, modelLoading, detectFrame]);
-
-  // Helper function to classify message as "action", "info", or "alert"
   const classifyMessage = (message: string) => {
     const actionKeywords = ["drink", "eat", "take", "exercise", "move", "rest", "meditate"];
     const alertKeywords = ["dangerously low", "dangerous", "alert", "emergency", "critical"];
@@ -140,10 +138,12 @@ export default function Dashboard() {
     return false;
   };
 
-  // Cerebras chatbot integration with better message handling and alerts
   const handleSend = async () => {
     if (input.trim()) {
-      setMessages([...messages, { text: input, sender: "user" }]);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { text: input, sender: "user" },
+      ]);
       setInput("");
 
       try {
@@ -153,7 +153,7 @@ export default function Dashboard() {
               role: "system",
               content: `You are a doctor's assistant named "health assistant". 
                         For each user input, respond with coherent chain-of-thought reasoning, breaking the response into meaningful steps or sentences.
-                        Classify each step as either "action", "info", or "alert". I respond in 3 sentences, making sure to ask for patient metrics, and I never use asteriks`,
+                        Classify each step as either "action", "info", or "alert". I respond in 3 sentences, making sure to ask for patient metrics, and I never use asterisks.`,
             },
             {
               role: "user",
@@ -173,10 +173,11 @@ export default function Dashboard() {
         let alertTriggered = false;
 
         for await (const chunk of stream) {
-          if (chunk?.choices && chunk.choices.length > 0) {  // Ensure chunk and choices are not null or undefined
+          if (chunk?.choices && chunk.choices.length > 0) {
             const content = chunk.choices[0]?.delta?.content || "";
             sentenceBuffer += content;
 
+            // Stop accumulating messages when a full sentence is detected
             if (/[.!?]$/.test(sentenceBuffer)) {
               accumulatedMessage += sentenceBuffer;
 
@@ -195,19 +196,30 @@ export default function Dashboard() {
               if (!addedMessages.has(sentenceBuffer)) {
                 addedMessages.add(sentenceBuffer);
                 const messageType = classifyMessage(sentenceBuffer);
-                setMessages((prev) => [...prev, { text: sentenceBuffer, sender: "bot", type: messageType }]);
-                sentenceBuffer = "";
+
+                setMessages((prevMessages) => [
+                  ...prevMessages,
+                  { text: sentenceBuffer, sender: "bot", type: messageType },
+                ]);
+                sentenceBuffer = ""; // Clear the buffer after processing the sentence
               }
             }
           }
         }
 
+        // Only set the final message after all parts are processed
         if (accumulatedMessage && !alertTriggered) {
-          setMessages((prev) => [...prev, { text: accumulatedMessage, sender: "bot" }]);
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            { text: accumulatedMessage, sender: "bot" },
+          ]);
         }
       } catch (error) {
         console.error("Error with Cerebras chat:", error);
-        setMessages((prev) => [...prev, { text: "Sorry, there was an error with the assistant.", sender: "bot" }]);
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { text: "Sorry, there was an error with the assistant.", sender: "bot" },
+        ]);
       }
     }
   };
@@ -217,13 +229,20 @@ export default function Dashboard() {
       {/* First Card - Daily Check-in */}
       <Card className="w-full max-w-2xl h-[80vh] bg-white bg-opacity-20 backdrop-blur-lg">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-white text-center">On Demand Check-in</CardTitle>
+          <CardTitle className="text-2xl font-bold text-white text-center">
+            On Demand Check-in
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="h-[60vh] overflow-y-auto space-y-4 p-4">
               {messages.map((message, index) => (
-                <div key={index} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  key={index}
+                  className={`flex ${
+                    message.sender === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
                   <div
                     className={`rounded-lg px-4 py-2 max-w-[80%] ${
                       message.sender === "user"
@@ -248,7 +267,10 @@ export default function Dashboard() {
                 placeholder="Type your message..."
                 className="flex-grow bg-white bg-opacity-20 text-white placeholder-gray-300"
               />
-              <Button onClick={handleSend} className="bg-white text-purple-600 hover:bg-gray-100">
+              <Button
+                onClick={handleSend}
+                className="bg-white text-purple-600 hover:bg-gray-100"
+              >
                 <Send className="w-4 h-4" />
               </Button>
             </div>
@@ -262,12 +284,25 @@ export default function Dashboard() {
         {/* Webcam Card */}
         <Card className="w-full max-w-2xl h-[50vh] bg-white bg-opacity-20 backdrop-blur-lg">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-white text-center">Patient Webcam Analysis</CardTitle>
+            <CardTitle className="text-2xl font-bold text-white text-center">
+              Patient Webcam Analysis
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="relative">
-              <video ref={videoRef} width="475" height="475" className="rounded-lg" style={{ position: "relative" }} />
-              <canvas ref={canvasRef} width="400" height="240" style={{ position: "absolute", top: 50, left: 50 }} />
+              <video
+                ref={videoRef}
+                width="475"
+                height="475"
+                className="rounded-lg"
+                style={{ position: "relative" }}
+              />
+              <canvas
+                ref={canvasRef}
+                width="400"
+                height="240"
+                style={{ position: "absolute", top: 50, left: 50 }}
+              />
             </div>
           </CardContent>
         </Card>
