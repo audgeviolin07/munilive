@@ -213,17 +213,8 @@ export default function Dashboard() {
     }
   };
 
-  // Wolfram chart fetching
-  const fetchWolframChart = async () => {
-    try {
-      const response = await fetch('http://localhost:4000/wolfram');
-      const data = await response.json();
-      const imageUrl = data.queryresult.pods[0].subpods[0].img.src;
-      setChartUrl(imageUrl);
-    } catch (error) {
-      console.error("Error fetching Wolfram chart:", error);
-    }
-  };
+ 
+  
 
   return (
     <div className="flex justify-center items-start space-x-8 p-8">
