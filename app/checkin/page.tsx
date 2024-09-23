@@ -23,43 +23,7 @@ export default function Dashboard() {
   const [modelWorkerId, setModelWorkerId] = useState<string | null>(null);
   const [modelLoading, setModelLoading] = useState(false);
 
-  // Roboflow initialization and webcam handling
-  useEffect(() => {
-    const startWebcam = () => {
-      navigator.mediaDevices
-        .getUserMedia({
-          audio: false,
-          video: { width: 320, height: 240, facingMode: "environment" },
-        })
-        .then((stream) => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-
-            videoRef.current.onloadedmetadata = () => {
-              if (videoRef.current) {
-                videoRef.current.play();
-              }
-              detectFrame();
-            };
-          }
-        })
-        .catch((error) => {
-          console.error("Error accessing webcam: ", error);
-        });
-    };
-
-    if (!modelLoading) {
-      setModelLoading(true);
-      inferEngine
-        .startWorker("coco", 3, "rf_EsVTlbAbaZPLmAFuQwWoJgFpMU82")
-        .then((id) => setModelWorkerId(id));
-    }
-
-    if (modelWorkerId) {
-      startWebcam();
-    }
-  }, [inferEngine, modelWorkerId, modelLoading, detectFrame]);
-
+  // Move detectFrame declaration above useEffect to prevent it from being used before it is defined
   const detectFrame = () => {
     if (
       !videoRef.current ||
@@ -107,6 +71,43 @@ export default function Dashboard() {
       console.error("ModelWorkerId is null");
     }
   };
+
+  // Roboflow initialization and webcam handling
+  useEffect(() => {
+    const startWebcam = () => {
+      navigator.mediaDevices
+        .getUserMedia({
+          audio: false,
+          video: { width: 320, height: 240, facingMode: "environment" },
+        })
+        .then((stream) => {
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+
+            videoRef.current.onloadedmetadata = () => {
+              if (videoRef.current) {
+                videoRef.current.play();
+              }
+              detectFrame();
+            };
+          }
+        })
+        .catch((error) => {
+          console.error("Error accessing webcam: ", error);
+        });
+    };
+
+    if (!modelLoading) {
+      setModelLoading(true);
+      inferEngine
+        .startWorker("coco", 3, "rf_EsVTlbAbaZPLmAFuQwWoJgFpMU82")
+        .then((id) => setModelWorkerId(id));
+    }
+
+    if (modelWorkerId) {
+      startWebcam();
+    }
+  }, [inferEngine, modelWorkerId, modelLoading, detectFrame]);
 
   // Helper function to classify message as "action", "info", or "alert"
   const classifyMessage = (message: string) => {
